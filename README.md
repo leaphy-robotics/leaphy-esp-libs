@@ -1,2 +1,2 @@
-# leaphy-esp-libs
-Leaphy supporting libraries for ESP board
+# leaphy-esp-ota
+Library supporting OTA programming for Leaphy ESP board
