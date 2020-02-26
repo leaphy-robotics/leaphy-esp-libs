@@ -1,2 +1,3 @@
 # leaphy-esp-ota
-Library supporting OTA programming for Leaphy ESP board
+
+Library providing OTA update functionality to the Leaphy ESP board
