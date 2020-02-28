@@ -3,6 +3,7 @@
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h> 
 #include <ArduinoWebsockets.h>
+#include <jsonlib.h>
 
 #include "LeaphyEspOta.h"
 
@@ -23,11 +24,10 @@ Robot gets location from API and updates itself
 After update, it can connect to WiFi
 It registers itself as being back
 It gets the same pairing code
-Or a new one (after one hour)
-Both cases, existing pairing (based on MAC address) is reestablished
 
-Until client disconnects
-Then pairing needs to happen again
+the client disconnects (but remembers the last pairing code)
+if the pairing code is still valid, it will pair automatically
+if the pairing code has changed, then pairing will have to happen again
 
 */
 
@@ -36,7 +36,7 @@ const char* websockets_server = "wss://ccsb7byy76.execute-api.eu-west-1.amazonaw
 WebsocketsClient client;
 
 voi setupWifi(){
-  randomSeed(analogRead(0));
+  randomSeed(analogRead(0)); // Gets a random seed from analog pin noise
   long randomNr = random(9999);
   WiFiManager wifiManager;
   String ssid = "Leaphy-" + randomNr;
@@ -46,7 +46,16 @@ voi setupWifi(){
 
 void onMessageCallback(WebsocketsMessage message) {
     Serial.print("Got Message: ");
-    Serial.println(message.data());
+    const messageData = message.data();
+    Serial.println(messageData);
+    const event = jsonExtract(messageData, "event");
+
+    // If pairing code, save and show it on the screen
+    if(event == "PAIRINGCODE_UPDATED"){
+        Serial.print("Pairing Code Updated Message Received: ");
+        const pairingCode = jsonExtract(messageData, "message");
+        Serial.println(pairingCode);
+    }
 }
 
 void onEventsCallback(WebsocketsEvent event, String data) {
@@ -62,6 +71,7 @@ void onEventsCallback(WebsocketsEvent event, String data) {
 }
 
 void setupWS(){
+    
     // Setup Callbacks
     client.onMessage(onMessageCallback);
     client.onEvent(onEventsCallback);
@@ -69,25 +79,18 @@ void setupWS(){
     // Connect to server
     client.connect(websockets_server);
 
-    // Send a message
-    client.send("{ \"action\": \"register-robot\", \"robotId\": \"robot001\"}");
-    // Send a ping
-    //client.ping();
+    // Register the robot with its mac address
+    string registerMessage = 
+        "{ \"action\": \"register-robot\", \"robotId\": \"" + WiFi.macAddress() + "\"}"
+    client.send(registerMessage);
 }
 
 void LeaphyEspOta::setupOta(){
-  Serial.begin(115200);
-  Serial.println("Starting OTA Setup");
-  setupWifi();
-  Serial.println("Connected, connecting to WS");
-  // Connect to WS
-
-  // If successful, send registration message to WS with MAC address
-
-  // Wait for pairing code to arrive
-
-  // Show Pairing Code
-
+    Serial.begin(115200);
+    Serial.println("Starting OTA Setup");
+    setupWifi();
+    Serial.println("Connected to WiFi, connecting to WS API");
+    setupWS();
 }
 
 void LeaphyEspOta::handleLoop(){
