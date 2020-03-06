@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "src/LeaphyEspOta.h"
 
-LeaphyEspOta Leaphy("robot001");
+LeaphyEspOta Leaphy;
 
 int ledState = LOW;
 const long blinkWaitInterval = 500;
