@@ -11,12 +11,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 }
 
-
 void loop() {
   Leaphy.handleLoop();
-
   digitalWrite(LED_BUILTIN, LOW);
-  delay(blinkWaitInterval);                   
+  delay(blinkWaitInterval);
   digitalWrite(LED_BUILTIN, HIGH);
-  delay(blinkWaitInterval);   
+  delay(blinkWaitInterval);
 }
