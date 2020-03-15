@@ -33,7 +33,7 @@ if the pairing code has changed, then pairing will have to happen again
 */
 
 // The url probably be injected just before compilation time
-const char* websockets_server = "wss://dmm59k8v96.execute-api.eu-west-1.amazonaws.com/test/";
+const char* websockets_server = "wss://ep9m98xb6k.execute-api.eu-west-1.amazonaws.com/test/";
 WebsocketsClient wsclient;
 WiFiClient wificlient;
 String robotId;
