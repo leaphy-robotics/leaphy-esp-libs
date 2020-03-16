@@ -10,33 +10,21 @@
 
 using namespace websockets;
 
-/*
-Leaphy robot is switched on
-It can't connect to internet
-It shows SSID of Wifi network (random Leaphy-XXXX)
-Peoples connect it to WiFi
-It registers itself to api using MAC address
-It receives and shows a pairing code
-Peoples pair their client using this code
-Client is linked to robot using MAC address
+// The url is injected just before compilation time
+const char* ServerUrl;
+//const char* ServerUrl = "wss://6lge1rqji3.execute-api.eu-west-1.amazonaws.com/test/";
 
-People upload new sketch to API
-Robot gets location from API and updates itself
-After update, it can connect to WiFi
-It registers itself as being back
-It gets the same pairing code
-
-the client disconnects (but remembers the last pairing code)
-if the pairing code is still valid, it will pair automatically
-if the pairing code has changed, then pairing will have to happen again
-
-*/
-
-// The url probably be injected just before compilation time
-const char* websockets_server = "wss://6lge1rqji3.execute-api.eu-west-1.amazonaws.com/test/";
 WebsocketsClient wsclient;
+boolean wsConnected = false;
+
 WiFiClient wificlient;
 String robotId;
+
+LeaphyEspOta::LeaphyEspOta(char* serverUrl)
+{
+	ServerUrl = serverUrl;
+}
+
 void setupWifi(){
     robotId = WiFi.macAddress();
     robotId.replace(":", "");
@@ -79,37 +67,32 @@ void onMessageCallback(WebsocketsMessage message) {
     }
 }
 
-void connectWS(){
-    // Connect to server
-    wsclient.connect(websockets_server);
-
-    // Register the robot with its mac address
-    String registerMessage = "{ \"action\": \"register-robot\", \"robotId\": \"" + robotId + "\"}";
-    wsclient.send(registerMessage);
-}
-
-void onEventsCallback(WebsocketsEvent event, String data) {
-    if(event == WebsocketsEvent::ConnectionOpened) {
-        Serial.println("Connnection Opened");
-    } else if(event == WebsocketsEvent::ConnectionClosed) {
-        // Immediately reconnect when connection is closed
-        Serial.println("Connnection Closed, reopening...");
-        connectWS();
-    } else if(event == WebsocketsEvent::GotPing) {
-        Serial.println("Got a Ping!");
-    } else if(event == WebsocketsEvent::GotPong) {
-        Serial.println("Got a Pong!");
-    }
-}
+void onEventsCallback(WebsocketsEvent event, String data); 
 
 void setupWS(){
-    
     // Setup Callbacks
     wsclient.onMessage(onMessageCallback);
     wsclient.onEvent(onEventsCallback);
     
     // Connect to server
-    connectWS();
+    wsclient.connect(ServerUrl);
+}
+
+void onEventsCallback(WebsocketsEvent event, String data) {
+    if(event == WebsocketsEvent::ConnectionOpened) {
+        wsConnected = true;
+        Serial.println("Connnection Opened, registering robot");
+        // Register the robot with its mac address
+        String registerMessage = "{ \"action\": \"register-robot\", \"robotId\": \"" + robotId + "\"}";
+        wsclient.send(registerMessage);
+    } else if(event == WebsocketsEvent::ConnectionClosed) {
+        Serial.println("Connnection Closed");
+        wsConnected = false;
+    } else if(event == WebsocketsEvent::GotPing) {
+        Serial.println("Got a Ping!");
+    } else if(event == WebsocketsEvent::GotPong) {
+        Serial.println("Got a Pong!");
+    }
 }
 
 void LeaphyEspOta::setupOta(){
@@ -122,5 +105,11 @@ void LeaphyEspOta::setupOta(){
 
 void LeaphyEspOta::handleLoop(){
 	// Handle the WS stuff
-    wsclient.poll();
+    if(wsConnected){
+        wsclient.poll();
+    } else {
+        Serial.println("Reopening Connection");
+        wsclient = WebsocketsClient();
+        setupWS();
+    }
 }

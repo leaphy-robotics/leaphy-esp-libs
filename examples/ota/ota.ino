@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "src/LeaphyEspOta.h"
 
-LeaphyEspOta Leaphy;
+LeaphyEspOta Leaphy("wss://6lge1rqji3.execute-api.eu-west-1.amazonaws.com/test/");
 
 int ledState = LOW;
 const long blinkWaitInterval = 500;
